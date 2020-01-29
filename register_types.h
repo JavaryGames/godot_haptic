@@ -1,2 +1,2 @@
-void register_haptic_types();
-void unregister_haptic_types();
+void register_godot_haptic_types();
+void unregister_godot_haptic_types();
