@@ -9,15 +9,16 @@ class Haptic : public Reference {
     protected:
         static void _bind_methods();
 
-		Haptic* instance;
-
     public:
-        void selection();
-		void impact(int feedback_style);
-		void notification(int feedback_type);
-
-		Haptic();
-        ~Haptic();
+        Haptic* shared;
+        void playContinuousHaptic(float intensity, float sharpness, float duration);
+        void playTransientHaptic(float intensity, float sharpness);
+        void playWithDictionaryFromJsonPattern(String jsonDict);
+        void playWithAHAPFile(String fileName);
+        void playWithAHAPFileFromURLAsString(String urlAsString);
+        void stop();
+        void updateContinuousHaptic(float intensity, float sharpness);
+        bool isSupported();
 };
 
 #endif
