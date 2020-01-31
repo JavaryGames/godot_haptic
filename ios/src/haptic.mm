@@ -203,9 +203,9 @@ void Haptic::updateContinuousHaptic(float intensity, float sharpness) {
 void Haptic::stop() {
     if ([[GodotHaptic shared] isSupportHaptic]) {
 
+        [[GodotHaptic shared] createContinuousPlayer];
         NSError* error = nil;
-        if ([GodotHaptic shared].continuousPlayer != NULL)
-            [[GodotHaptic shared].continuousPlayer stopAtTime:0 error:&error];
+        [[GodotHaptic shared].continuousPlayer stopAtTime:0 error:&error];
 
         if ([GodotHaptic shared].engine != NULL && [GodotHaptic shared].isEngineStarted) {
             GodotHaptic *weakSelf = [GodotHaptic shared];
