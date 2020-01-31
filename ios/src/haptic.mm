@@ -300,7 +300,7 @@ void Haptic::stop() {
 }
 
 - (BOOL) isSupportHaptic {
-    if ([GodotHaptic isSupported]) {
+    if (@available(iOS 13, *)) {
         return CHHapticEngine.capabilitiesForHardware.supportsHaptics;
     }
     return NO;
