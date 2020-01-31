@@ -54,20 +54,20 @@ void Haptic::playContinuousHaptic(float intensity, float sharpness, float durati
     }
 }
 
-- (void) playTransientHaptic:(float) intensity :(float)sharpness {
+void Haptic::playTransientHaptic(float intensity, float sharpness) {
   #if DEBUG
-      NSLog(@"[Haptic] playTransientHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@", intensity, sharpness, [self isSupportHaptic], self.engine);
+      NSLog(@"[Haptic] playTransientHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@", intensity, sharpness, [[GodotHaptic shared] isSupportHaptic], [GodotHaptic shared].engine);
   #endif
 
     if (intensity > 1 || intensity <= 0) return;
     if (sharpness > 1 || sharpness < 0) return;
 
-    if ([self isSupportHaptic]) {
+    if ([[GodotHaptic shared] isSupportHaptic]) {
 
-        if (self.engine == NULL) {
-            [self createEngine];
+        if ([GodotHaptic shared].engine == NULL) {
+            [[GodotHaptic shared] createEngine];
         }
-        [self startEngine];
+        [[GodotHaptic shared] startEngine];
 
         CHHapticEventParameter* intensityParam = [[CHHapticEventParameter alloc] initWithParameterID:CHHapticEventParameterIDHapticIntensity value:intensity];
         CHHapticEventParameter* sharpnessParam = [[CHHapticEventParameter alloc] initWithParameterID:CHHapticEventParameterIDHapticSharpness value:sharpness];
@@ -124,7 +124,7 @@ void Haptic::playContinuousHaptic(float intensity, float sharpness, float durati
     }
 }
 
-- (void) playWithDictionaryFromJsonPattern: (NSString*) jsonDict {
+void Haptic::playWithDictionaryFromJsonPattern(NSString* jsonDict) {
     if (jsonDict != nil) {
         #if DEBUG
             NSLog(@"[Haptic] playWithDictionaryFromJsonPattern --> json: %@", jsonDict);
@@ -144,23 +144,23 @@ void Haptic::playContinuousHaptic(float intensity, float sharpness, float durati
     }
 }
 
-- (void) playWithAHAPFile: (NSString*) fileName {
-    if ([self isSupportHaptic]) {
+void playWithAHAPFile(NSString* fileName) {
+    if ([[GodotHaptic shared] isSupportHaptic]) {
 
-        if (self.engine == NULL) {
-            [self createEngine];
+        if ([GodotHaptic shared].engine == NULL) {
+            [[GodotHaptic shared] createEngine];
         }
-        [self startEngine];
+        [[GodotHaptic shared] startEngine];
 
         NSString* path = [[NSBundle mainBundle] pathForResource:fileName ofType:@"ahap"];
-        [self playWithAHAPFileFromURLAsString:path];
+        [[GodotHaptic shared] playWithAHAPFileFromURLAsString:path];
     }
 }
 
-- (void) playWithAHAPFileFromURLAsString: (NSString*) urlAsString {
+void playWithAHAPFileFromURLAsString(NSString* urlAsString) {
     if (urlAsString != nil) {
         NSURL* url = [NSURL fileURLWithPath:urlAsString];
-        [self playWithAHAPFileFromURL:url];
+        [[GodotHaptic shared] playWithAHAPFileFromURL:url];
     } else {
         NSLog(@"[Haptic] url string is nil");
     }
@@ -175,15 +175,15 @@ void Haptic::playContinuousHaptic(float intensity, float sharpness, float durati
     }
 }
 
-- (void) updateContinuousHaptic:(float) intensity :(float)sharpness {
+void updateContinuousHaptic(float intensity, float sharpness) {
   #if DEBUG
-      NSLog(@"[Haptic] updateContinuousHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@, player: %@", intensity, sharpness, [self isSupportHaptic], self.engine, self.continuousPlayer);
+      NSLog(@"[Haptic] updateContinuousHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@, player: %@", intensity, sharpness, [[GodotHaptic shared] isSupportHaptic], [GodotHaptic shared].engine, [GodotHaptic shared].continuousPlayer);
   #endif
 
     if (intensity > 1 || intensity <= 0) return;
     if (sharpness > 1 || sharpness < 0) return;
 
-    if ([self isSupportHaptic] && _engine != NULL && _continuousPlayer != NULL) {
+    if ([[GodotHaptic shared] isSupportHaptic] && _engine != NULL && _continuousPlayer != NULL) {
 
         CHHapticDynamicParameter* intensityParam = [[CHHapticDynamicParameter alloc] initWithParameterID:CHHapticDynamicParameterIDHapticIntensityControl value:intensity relativeTime:0];
         CHHapticDynamicParameter* sharpnessParam = [[CHHapticDynamicParameter alloc] initWithParameterID:CHHapticDynamicParameterIDHapticSharpnessControl value:sharpness relativeTime:0];
@@ -197,8 +197,8 @@ void Haptic::playContinuousHaptic(float intensity, float sharpness, float durati
     }
 }
 
-- (void) stop {
-    if ([self isSupportHaptic]) {
+void stop() {
+    if ([[GodotHaptic shared] isSupportHaptic]) {
 
         NSError* error = nil;
         if (_continuousPlayer != NULL)
@@ -213,7 +213,7 @@ void Haptic::playContinuousHaptic(float intensity, float sharpness, float durati
             }];
         }
     }
-};
+}
 
 - (void) createContinuousPlayer {
     [self createContinuousPlayer: 1.0 :0.5 :30];
@@ -303,7 +303,7 @@ void Haptic::playContinuousHaptic(float intensity, float sharpness, float durati
     return NO;
 }
 
-+ (BOOL) isSupported {
+bool isSupported() {
     if (@available(iOS 13, *)) {
         return YES;
     }
@@ -319,13 +319,13 @@ void Haptic::playContinuousHaptic(float intensity, float sharpness, float durati
 
 void Haptic::_bind_methods() {
     ClassDB::bind_method("playContinuousHaptic", &Haptic::playContinuousHaptic);
-    // ClassDB::bind_method("playTransientHaptic", &Haptic::playTransientHaptic);
-    // ClassDB::bind_method("playWithDictionaryFromJsonPattern", &Haptic::playWithDictionaryFromJsonPattern);
-    // ClassDB::bind_method("playWithAHAPFile", &Haptic::playWithAHAPFile);
-    // ClassDB::bind_method("playWithAHAPFileFromURLAsString", &Haptic::playWithAHAPFileFromURLAsString);
-    // ClassDB::bind_method("stop", &Haptic::stop);
-    // ClassDB::bind_method("updateContinuousHaptic", &Haptic::updateContinuousHaptic);
-    // ClassDB::bind_method("isSupported", &Haptic::isSupported);
+    ClassDB::bind_method("playTransientHaptic", &Haptic::playTransientHaptic);
+    ClassDB::bind_method("playWithDictionaryFromJsonPattern", &Haptic::playWithDictionaryFromJsonPattern);
+    ClassDB::bind_method("playWithAHAPFile", &Haptic::playWithAHAPFile);
+    ClassDB::bind_method("playWithAHAPFileFromURLAsString", &Haptic::playWithAHAPFileFromURLAsString);
+    ClassDB::bind_method("stop", &Haptic::stop);
+    ClassDB::bind_method("updateContinuousHaptic", &Haptic::updateContinuousHaptic);
+    ClassDB::bind_method("isSupported", &Haptic::isSupported);
 }
 
 @end
