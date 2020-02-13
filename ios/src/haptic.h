@@ -11,14 +11,14 @@ class Haptic : public Reference {
 
     public:
         Haptic* shared;
-        void playContinuousHaptic(float intensity, float sharpness, float duration);
-        void playTransientHaptic(float intensity, float sharpness);
+        void playContinuousHaptic(float intensity, float sharpness, float duration); // Tested
+        void playTransientHaptic(float intensity, float sharpness); // Tested
         void playWithDictionaryFromJsonPattern(String jsonDict);
         void playWithAHAPFile(String fileName);
         void playWithAHAPFileFromURLAsString(String urlAsString);
-        void stop();
+        void stop(); // Tested
         void updateContinuousHaptic(float intensity, float sharpness);
-        bool isSupported();
+        bool isSupported(); // Tested
 };
 
 #endif

@@ -179,9 +179,9 @@ void Haptic::playWithAHAPFileFromURLAsString(String urlAsString) {
 }
 
 void Haptic::updateContinuousHaptic(float intensity, float sharpness) {
-  #if DEBUG
-      NSLog(@"[Haptic] updateContinuousHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@, player: %@", intensity, sharpness, [[GodotHaptic shared] isSupportHaptic], [GodotHaptic shared].engine, [GodotHaptic shared].continuousPlayer);
-  #endif
+#if DEBUG
+    NSLog(@"[Haptic] updateContinuousHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@", intensity, sharpness, [[GodotHaptic shared] isSupportHaptic], [GodotHaptic shared].engine);
+#endif
 
     if (intensity > 1 || intensity <= 0) return;
     if (sharpness > 1 || sharpness < 0) return;
@@ -192,6 +192,9 @@ void Haptic::updateContinuousHaptic(float intensity, float sharpness) {
         CHHapticDynamicParameter* sharpnessParam = [[CHHapticDynamicParameter alloc] initWithParameterID:CHHapticDynamicParameterIDHapticSharpnessControl value:sharpness relativeTime:0];
 
         NSError* error = nil;
+        [[GodotHaptic shared] createContinuousPlayer];
+        NSLog(@"[GodotHaptic shared] = %@", [GodotHaptic shared]);
+        NSLog(@"[GodotHaptic shared].continuousPlayer = %@", [GodotHaptic shared].continuousPlayer);
         [[GodotHaptic shared].continuousPlayer sendParameters:@[intensityParam, sharpnessParam] atTime:0 error:&error];
 
         if (error != nil) {
@@ -203,8 +206,8 @@ void Haptic::updateContinuousHaptic(float intensity, float sharpness) {
 void Haptic::stop() {
     if ([[GodotHaptic shared] isSupportHaptic]) {
 
-        [[GodotHaptic shared] createContinuousPlayer];
         NSError* error = nil;
+        [[GodotHaptic shared] createContinuousPlayer];
         [[GodotHaptic shared].continuousPlayer stopAtTime:0 error:&error];
 
         if ([GodotHaptic shared].engine != NULL && [GodotHaptic shared].isEngineStarted) {
