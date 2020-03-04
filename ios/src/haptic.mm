@@ -5,7 +5,6 @@
 @interface GodotHaptic : NSObject
 @property (strong) CHHapticEngine* engine;
 @property (strong) id<CHHapticAdvancedPatternPlayer> continuousPlayer;
-@property (strong) id<CHHapticPatternPlayer> patternPlayer;
 @property BOOL isEngineStarted;
 @property BOOL isEngineIsStopping;
 @property BOOL isSupportHaptic;
@@ -49,6 +48,14 @@ static GodotHaptic *_shared;
   }
 }
 
+bool Haptic::isSupported() {
+    return [[GodotHaptic shared] _isSupported];
+}
+
+- (BOOL) _isSupported {
+    return self.isSupportHaptic;
+}
+
 void Haptic::playContinuousHaptic(float intensity, float sharpness, float duration) {
     [[GodotHaptic shared] _playContinuousHaptic:intensity :sharpness :duration];
 }
@@ -70,6 +77,15 @@ void Haptic::playContinuousHaptic(float intensity, float sharpness, float durati
         [self startEngine];
 
         [self createContinuousPlayer:intensity :sharpness :duration];
+
+        [_engine notifyWhenPlayersFinished:^CHHapticEngineFinishedAction(NSError * _Nullable error) {
+            [self releaseContinuousPlayer];
+            if (error == NULL || error == nil) {
+                return CHHapticEngineFinishedActionLeaveEngineRunning;
+            } else {
+                return CHHapticEngineFinishedActionStopEngine;
+            }
+        }];
 
         NSError* error = nil;
         [_continuousPlayer startAtTime:0 error:&error];
@@ -120,91 +136,7 @@ void Haptic::playTransientHaptic(float intensity, float sharpness) {
     }
 }
 
-- (void) playWithDictionaryPattern: (NSDictionary*) hapticDict {
-    if (self.isSupportHaptic) {
-
-        if (self.engine == NULL) {
-            [self createEngine];
-        }
-        [self startEngine];
-
-        NSError* error = nil;
-        CHHapticPattern* pattern = [[CHHapticPattern alloc] initWithDictionary:hapticDict error:&error];
-
-        if (error == nil) {
-            _patternPlayer = [_engine createPlayerWithPattern:pattern error:&error];
-
-            [_engine notifyWhenPlayersFinished:^CHHapticEngineFinishedAction(NSError * _Nullable error) {
-                if (error == NULL || error == nil) {
-                    return CHHapticEngineFinishedActionLeaveEngineRunning;
-                } else {
-                    return CHHapticEngineFinishedActionStopEngine;
-                }
-            }];
-
-            if (error == nil) {
-                [_patternPlayer startAtTime:0 error:&error];
-            } else {
-                NSLog(@"[GodotHaptic] Create dictionary player error --> %@", error);
-            }
-        } else {
-            NSLog(@"[GodotHaptic] Create dictionary pattern error --> %@", error);
-        }
-    }
-}
-
-- (void) playWithDictionaryFromJsonPattern: (NSString*) jsonDict {
-    if (jsonDict != nil) {
-        #if DEBUG
-            NSLog(@"[GodotHaptic] playWithDictionaryFromJsonPattern --> json: %@", jsonDict);
-        #endif
-
-        NSError* error = nil;
-        NSData* data = [jsonDict dataUsingEncoding:NSUTF8StringEncoding];
-        NSDictionary* dict = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:&error];
-
-        if (error == nil) {
-            [self playWithDictionaryPattern:dict];
-        } else {
-            NSLog(@"[GodotHaptic] Create dictionary from json error --> %@", error);
-        }
-    } else {
-        NSLog(@"[GodotHaptic] Json dictionary string is nil");
-    }
-}
-
-- (void) playWIthAHAPFile: (NSString*) fileName {
-    if (self.isSupportHaptic) {
-
-        if (self.engine == NULL) {
-            [self createEngine];
-        }
-        [self startEngine];
-
-        NSString* path = [[NSBundle mainBundle] pathForResource:fileName ofType:@"ahap"];
-        [self playWithAHAPFileFromURLAsString:path];
-    }
-}
-
-- (void) playWithAHAPFileFromURLAsString: (NSString*) urlAsString {
-    if (urlAsString != nil) {
-        NSURL* url = [NSURL fileURLWithPath:urlAsString];
-        [self playWithAHAPFileFromURL:url];
-    } else {
-        NSLog(@"[GodotHaptic] url string is nil");
-    }
-}
-
-- (void) playWithAHAPFileFromURL: (NSURL*) url {
-    NSError * error = nil;
-    [_engine playPatternFromURL:url error:&error];
-
-    if (error != nil) {
-        NSLog(@"[GodotHaptic] Engine play from AHAP file error --> %@", error);
-    }
-}
-
-void Haptic::updateContinuousHaptic(float intensity, float sharpness){
+void Haptic::updateContinuousHaptic(float intensity, float sharpness) {
     [[GodotHaptic shared] _updateContinuousHaptic:intensity :sharpness];
 }
 
@@ -230,7 +162,7 @@ void Haptic::updateContinuousHaptic(float intensity, float sharpness){
     }
 }
 
-void Haptic::stop(){
+void Haptic::stop() {
     [[GodotHaptic shared] _stop];
 }
 
@@ -241,9 +173,6 @@ void Haptic::stop(){
       NSError* error = nil;
       if (_continuousPlayer != NULL)
           [_continuousPlayer stopAtTime:0 error:&error];
-
-      if (_patternPlayer != NULL)
-          [_patternPlayer stopAtTime:0 error:&error];
 
       if (_engine != NULL && _isEngineStarted && !_isEngineIsStopping) {
           GodotHaptic *weakSelf = self;
@@ -259,22 +188,6 @@ void Haptic::stop(){
       }
     }
 };
-
-void Haptic::stopPatternPlayer(){
-    [[GodotHaptic shared] _stopPatternPlayer];
-}
-
-- (void) _stopPatternPlayer {
-    NSLog(@"[GodotHaptic] STOP PLAYER isSupportHaptic -> %d, _patternPlayer -> %@", self.isSupportHaptic, _patternPlayer);
-    if (self.isSupportHaptic && _patternPlayer != NULL) {
-        NSError* error;
-        [_patternPlayer stopAtTime:0 error:&error];
-
-        if (error != nil) {
-            NSLog(@"[GodotHaptic] Player stop error --> %@", error);
-        }
-    }
-}
 
 - (void) createContinuousPlayer {
     [self createContinuousPlayer: 1.0 :0.5 :30];
@@ -292,10 +205,16 @@ void Haptic::stopPatternPlayer(){
 
         if (error == nil) {
             _continuousPlayer = [_engine createAdvancedPlayerWithPattern:pattern error:&error];
+            [_continuousPlayer retain];
         } else {
             NSLog(@"[GodotHaptic] Create contuous player error --> %@", error);
         }
     }
+}
+
+- (void) releaseContinuousPlayer {
+    NSLog(@"[GodotHaptic] Releasing continuous player");
+    [_continuousPlayer release];
 }
 
 - (void) createEngine {
@@ -357,63 +276,12 @@ void Haptic::stopPatternPlayer(){
     }
 }
 
-- (NSString*) createNSString: (const char*) string {
-  if (string)
-      return [[NSString alloc] initWithUTF8String:string];
-  else
-      return [NSString stringWithUTF8String: ""];
-}
-
 void Haptic::_bind_methods() {
+    ClassDB::bind_method("isSupported", &Haptic::isSupported);
     ClassDB::bind_method("playContinuousHaptic", &Haptic::playContinuousHaptic);
     ClassDB::bind_method("playTransientHaptic", &Haptic::playTransientHaptic);
-    // ClassDB::bind_method("playWithDictionaryFromJsonPattern", &Haptic::playWithDictionaryFromJsonPattern);
-    // ClassDB::bind_method("playWithAHAPFile", &Haptic::playWithAHAPFile);
-    // ClassDB::bind_method("playWithAHAPFileFromURLAsString", &Haptic::playWithAHAPFileFromURLAsString);
-    ClassDB::bind_method("stopPatternPlayer", &Haptic::stopPatternPlayer);
-    ClassDB::bind_method("stop", &Haptic::stop);
     ClassDB::bind_method("updateContinuousHaptic", &Haptic::updateContinuousHaptic);
+    ClassDB::bind_method("stop", &Haptic::stop);
 }
 
 @end
-
-
-#pragma mark - Bridge
-
-extern "C" {
-    void _coreHapticsGodotPlayContinuous(float intensity, float sharpness, int duration) {
-        [[GodotHaptic shared] playContinuousHaptic:intensity :sharpness :duration];
-    }
-
-    void _coreHapticsGodotPlayTransient(float intensity, float sharpness) {
-        [[GodotHaptic shared] playTransientHaptic:intensity :sharpness];
-    }
-
-    void _coreHapticsGodotStop() {
-        [[GodotHaptic shared] stop];
-    }
-
-    void _coreHapticsGodotStopPlayer() {
-        [[GodotHaptic shared] stopPatternPlayer];
-    }
-
-    void _coreHapticsGodotupdateContinuousHaptics(float intensity, float sharpness) {
-        [[GodotHaptic shared] updateContinuousHaptic:intensity :sharpness];
-    }
-
-    void _coreHapticsGodotplayWithDictionaryPattern(const char* jsonDict) {
-        [[GodotHaptic shared] playWithDictionaryFromJsonPattern:[[GodotHaptic shared] createNSString:jsonDict]];
-    }
-
-    void _coreHapticsGodotplayWIthAHAPFile(const char* filename) {
-        [[GodotHaptic shared] playWIthAHAPFile:[[GodotHaptic shared] createNSString:filename]];
-    }
-
-    void _coreHapticsGodotplayWithAHAPFileFromURLAsString(const char* urlAsString) {
-        [[GodotHaptic shared] playWithAHAPFileFromURLAsString:[[GodotHaptic shared] createNSString:urlAsString]];
-    }
-
-    bool _coreHapticsGodotIsSupport() {
-        return [[GodotHaptic shared] isSupportHaptic];
-    }
-}
