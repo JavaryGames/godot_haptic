@@ -167,7 +167,10 @@ void Haptic::stop() {
 }
 
 - (void) _stop {
-    NSLog(@"[GodotHaptic] STOP isSupportHaptic -> %d", self.isSupportHaptic);
+    #if DEBUG
+        NSLog(@"[GodotHaptic] STOP isSupportHaptic -> %d", self.isSupportHaptic);
+    #endif
+    
     if (self.isSupportHaptic) {
 
       NSError* error = nil;
@@ -213,7 +216,10 @@ void Haptic::stop() {
 }
 
 - (void) releaseContinuousPlayer {
-    NSLog(@"[GodotHaptic] Releasing continuous player");
+    #if DEBUG
+        NSLog(@"[GodotHaptic] Releasing continuous player");
+    #endif
+
     [_continuousPlayer release];
 }
 
