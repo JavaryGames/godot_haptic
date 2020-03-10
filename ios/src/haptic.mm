@@ -8,6 +8,7 @@
 @property BOOL isEngineStarted;
 @property BOOL isEngineIsStopping;
 @property BOOL isSupportHaptic;
+@property int continuousPlayerRetainCount;
 @end
 
 @implementation GodotHaptic
@@ -31,6 +32,7 @@ static GodotHaptic *_shared;
           NSLog(@"[GodotHaptic] isSupportHaptic -> %d", self.isSupportHaptic);
         #endif
 
+        self.continuousPlayerRetainCount = 0;
         [self createEngine];
     }
     return self;
@@ -62,7 +64,7 @@ void Haptic::playContinuousHaptic(float intensity, float sharpness, float durati
 
 - (void) _playContinuousHaptic:(float) intensity :(float)sharpness :(float)duration {
   #if DEBUG
-      NSLog(@"[GodotHaptic] playContinuousHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@", intensity, sharpness, self.isSupportHaptic, self.engine);
+      NSLog(@"[GodotHaptic] playContinuousHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@, continuousPlayerRetainCount: %d", intensity, sharpness, self.isSupportHaptic, self.engine, self.continuousPlayerRetainCount);
   #endif
 
     if (intensity > 1 || intensity <= 0) return;
@@ -142,13 +144,13 @@ void Haptic::updateContinuousHaptic(float intensity, float sharpness) {
 
 - (void) _updateContinuousHaptic:(float) intensity :(float)sharpness {
   #if DEBUG
-      NSLog(@"[GodotHaptic] updateContinuousHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@", intensity, sharpness, self.isSupportHaptic, self.engine);
+      NSLog(@"[GodotHaptic] updateContinuousHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@, continuousPlayerRetainCount: %d", intensity, sharpness, self.isSupportHaptic, self.engine, self.continuousPlayerRetainCount);
   #endif
 
     if (intensity > 1 || intensity <= 0) return;
     if (sharpness > 1 || sharpness < 0) return;
 
-    if (self.isSupportHaptic && _engine != NULL && _continuousPlayer != NULL) {
+    if (self.isSupportHaptic && _engine != NULL && _continuousPlayer != NULL && self.continuousPlayerRetainCount == 1) {
 
         CHHapticDynamicParameter* intensityParam = [[CHHapticDynamicParameter alloc] initWithParameterID:CHHapticDynamicParameterIDHapticIntensityControl value:intensity relativeTime:0];
         CHHapticDynamicParameter* sharpnessParam = [[CHHapticDynamicParameter alloc] initWithParameterID:CHHapticDynamicParameterIDHapticSharpnessControl value:sharpness relativeTime:0];
@@ -168,10 +170,10 @@ void Haptic::stop() {
 
 - (void) _stop {
     #if DEBUG
-        NSLog(@"[GodotHaptic] STOP isSupportHaptic -> %d", self.isSupportHaptic);
+        NSLog(@"[GodotHaptic] STOP isSupportHaptic -> %d, continuousPlayerRetainCount: %d", self.isSupportHaptic, self.continuousPlayerRetainCount);
     #endif
     
-    if (self.isSupportHaptic) {
+    if (self.isSupportHaptic && self.continuousPlayerRetainCount > 0) {
 
       NSError* error = nil;
       if (_continuousPlayer != NULL)
@@ -206,9 +208,10 @@ void Haptic::stop() {
         NSError* error = nil;
         CHHapticPattern* pattern = [[CHHapticPattern alloc] initWithEvents:@[event] parameters:@[] error:&error];
 
-        if (error == nil) {
+        if (error == nil && self.continuousPlayerRetainCount == 0) {
             _continuousPlayer = [_engine createAdvancedPlayerWithPattern:pattern error:&error];
             [_continuousPlayer retain];
+            self.continuousPlayerRetainCount += 1;
         } else {
             NSLog(@"[GodotHaptic] Create contuous player error --> %@", error);
         }
@@ -220,7 +223,10 @@ void Haptic::stop() {
         NSLog(@"[GodotHaptic] Releasing continuous player");
     #endif
 
-    [_continuousPlayer release];
+    if (self.continuousPlayerRetainCount > 0) {
+        [_continuousPlayer release];
+        self.continuousPlayerRetainCount -= 1;
+    }
 }
 
 - (void) createEngine {
