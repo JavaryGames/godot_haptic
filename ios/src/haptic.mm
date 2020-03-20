@@ -78,7 +78,10 @@ void Haptic::playContinuousHaptic(float intensity, float sharpness, float durati
         }
         [self startEngine];
 
-        [self createContinuousPlayer:intensity :sharpness :duration];
+        bool createSuccess;
+        createSuccess = [self createContinuousPlayer:intensity :sharpness :duration];
+
+        if (!createSuccess) return;
 
         [_engine notifyWhenPlayersFinished:^CHHapticEngineFinishedAction(NSError * _Nullable error) {
             [self releaseContinuousPlayer];
@@ -194,11 +197,7 @@ void Haptic::stop() {
     }
 };
 
-- (void) createContinuousPlayer {
-    [self createContinuousPlayer: 1.0 :0.5 :30];
-}
-
-- (void) createContinuousPlayer:(float) intens :(float)sharp :(float) duration {
+- (bool) createContinuousPlayer:(float) intens :(float)sharp :(float) duration {
     if (self.isSupportHaptic) {
         CHHapticEventParameter* intensity = [[CHHapticEventParameter alloc] initWithParameterID:CHHapticEventParameterIDHapticIntensity value:intens];
         CHHapticEventParameter* sharpness = [[CHHapticEventParameter alloc] initWithParameterID:CHHapticEventParameterIDHapticSharpness value:sharp];
@@ -212,8 +211,10 @@ void Haptic::stop() {
             _continuousPlayer = [_engine createAdvancedPlayerWithPattern:pattern error:&error];
             [_continuousPlayer retain];
             self.continuousPlayerRetainCount += 1;
+            return true;
         } else {
-            NSLog(@"[GodotHaptic] Create contuous player error --> %@", error);
+            NSLog(@"[GodotHaptic] Create continuous player error --> %@", error);
+            return false;
         }
     }
 }
