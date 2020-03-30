@@ -51,6 +51,10 @@ bool Haptic::isSupported() {
     return [[GodotHaptic shared] _isSupported];
 }
 
+- (BOOL) _isSupported {
+    return self.isSupportHaptic;
+}
+
 void Haptic::playContinuousHaptic(float intensity, float sharpness, float duration) {
     [[GodotHaptic shared] _playContinuousHaptic:intensity :sharpness :duration];
 }
